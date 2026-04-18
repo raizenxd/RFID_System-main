@@ -13,6 +13,9 @@ import java.time.format.DateTimeFormatter;
  */
 public class frmRegister extends javax.swing.JFrame {
     
+    // Logger: records errors and events to the console in a structured, professional way.
+    // Unlike System.out.println, the Logger lets you mark severity levels (INFO, WARNING, SEVERE).
+    // frmRegister.class.getName() sets the logger's name to "com.mycompany.ict.d_4.frmRegister".
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(frmRegister.class.getName());
 
     /**
@@ -72,38 +75,51 @@ public class frmRegister extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnRegisterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRegisterActionPerformed
-Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        // STEP 1: Capture the current date and time for debugging purposes.
+        // Timestamp wraps System.currentTimeMillis() (milliseconds since Jan 1, 1970) into a date-time object.
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 
-DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-String formatted = timestamp.toLocalDateTime().format(formatter);
+        // Format the timestamp into a human-readable string: "yyyy-MM-dd HH:mm:ss"
+        // e.g., "2026-04-18 08:30:00"
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        String formatted = timestamp.toLocalDateTime().format(formatter);
 
-System.out.println(formatted);
+        // Print the formatted timestamp to the console (useful during testing/debugging)
+        System.out.println(formatted);
 
-        
-        
-        String rfid_number = txtRFID.getText();
-        String firstname = txtfirstname.getText();
-        String lastname = txtlastname.getText();
-        String section = txtSection.getText();
-        String parent_email = txtParentEmail.getText();
+        // STEP 2: Read the values typed into each text field on the registration form.
+        // .getText() retrieves the current text content of a JTextField component.
+        String rfid_number  = txtRFID.getText();        // The RFID card number scanned or typed
+        String firstname    = txtfirstname.getText();   // Student's first name
+        String lastname     = txtlastname.getText();    // Student's last name
+        String section      = txtSection.getText();     // Student's class/section (e.g., "ICT-D4")
+        String parent_email = txtParentEmail.getText(); // Parent's email for attendance notifications
 
         try {
+            // STEP 3: Insert the new student record into the "students_information" table.
+            // Uses ConnectXamppSQL's fluent builder: each .set() adds one column-value pair.
+            // .execute() assembles the full SQL INSERT and runs it against the database.
             ConnectXamppSQL.Insert("students_information")
-            .set("RFID_Number", rfid_number)
-            .set("Firstname", firstname)
-            .set("Lastname", lastname)
-            .set("Section", section)
-            .set("Parent_Email", parent_email)
-            .execute();
+            .set("RFID_Number",  rfid_number)   // Save the RFID card number
+            .set("Firstname",    firstname)      // Save the first name
+            .set("Lastname",     lastname)       // Save the last name
+            .set("Section",      section)        // Save the section
+            .set("Parent_Email", parent_email)   // Save the parent's email address
+            .execute(); // Run the SQL INSERT — this writes the record to MySQL
             
-            javax.swing.JOptionPane.showMessageDialog(null, "Successfully Registered!");         
-              new frmTimeIn().setVisible(true);
+            // STEP 4: If the database INSERT succeeded, show a success popup.
+            javax.swing.JOptionPane.showMessageDialog(null, "Successfully Registered!");
+            // STEP 5: Open the Time-In window so the student can immediately scan in.
+            new frmTimeIn().setVisible(true);
+            // STEP 6: Close this registration window since we no longer need it.
             this.dispose();            
-                  } 
+        } 
         
-        
-            catch (Exception e) {
-           javax.swing.JOptionPane.showMessageDialog(null, "Unauthorized Student!");
+        catch (Exception e) {
+            // If the INSERT fails (e.g., duplicate RFID, no database connection),
+            // show an error message. Note: the message says "Unauthorized Student" but
+            // this runs for ANY database exception, not just authorization failures.
+            javax.swing.JOptionPane.showMessageDialog(null, "Unauthorized Student!");
         }
 
     }//GEN-LAST:event_btnRegisterActionPerformed
