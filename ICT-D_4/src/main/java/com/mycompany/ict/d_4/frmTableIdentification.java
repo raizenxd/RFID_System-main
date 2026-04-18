@@ -1,0 +1,300 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
+ */
+package com.mycompany.ict.d_4;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+/**
+ *
+ * @author pc
+ */
+public class frmTableIdentification extends javax.swing.JFrame {
+    
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(frmTableIdentification.class.getName());
+    private static final DateTimeFormatter DB_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("hh:mm a");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    /**
+     * Creates new form frmTableIdentification
+     */
+    public frmTableIdentification() {
+        initComponents();
+        loadAttendanceTable("");
+    }
+
+    private void loadAttendanceTable(String rfidFilter) {
+        try {
+            var m = (javax.swing.table.DefaultTableModel) tbIdentification.getModel();
+            m.setRowCount(0);
+
+            List<Map<String, String>> students = ConnectXamppSQL.Read("students_information").get();
+            java.util.Map<String, Map<String, String>> studentByRfid = new java.util.HashMap<>();
+            for (Map<String, String> student : students) {
+                String rfid = student.getOrDefault("rfid_number", "");
+                if (!rfid.isBlank()) {
+                    studentByRfid.put(rfid, student);
+                }
+            }
+
+            ConnectXamppSQL logsQuery = ConnectXamppSQL.Read("attendance_logs");
+            if (rfidFilter != null && !rfidFilter.isBlank()) {
+                logsQuery = logsQuery.where("rfid_number", "=", rfidFilter);
+            }
+            
+            List<Map<String, String>> logs = logsQuery.get();
+
+            java.util.Set<String> loggedRfids = new java.util.HashSet<>();
+            for (Map<String, String> log : logs) {
+                String rfid = log.getOrDefault("rfid_number", "");
+                loggedRfids.add(rfid);
+
+                Map<String, String> student = studentByRfid.getOrDefault(rfid, new java.util.HashMap<>());
+                String firstname = student.getOrDefault("firstname", "");
+                String lastname = student.getOrDefault("lastname", "");
+                String section = student.getOrDefault("section", "");
+                String timestamp = log.getOrDefault("timestamp", "");
+                String day = "";
+                String time = "";
+                if (!timestamp.isBlank()) {
+                    try {
+                        LocalDateTime dateTime = LocalDateTime.parse(timestamp, DB_TIMESTAMP_FORMAT);
+                        day = dateTime.format(DATE_FORMAT);
+                        time = dateTime.format(TIME_FORMAT);
+                    } catch (Exception ex) {
+                        day = timestamp;
+                    }
+                }
+
+                String timeIn = "IN".equalsIgnoreCase(log.getOrDefault("log_type", "")) ? time : "";
+                String timeOut = "OUT".equalsIgnoreCase(log.getOrDefault("log_type", "")) ? time : "";
+                m.addRow(new Object[]{rfid, firstname, lastname, section, timeIn, timeOut, day});
+            }
+
+            if (rfidFilter == null || rfidFilter.isBlank()) {
+                for (Map<String, String> student : students) {
+                    String rfid = student.getOrDefault("rfid_number", "");
+                    if (rfid.isBlank() || loggedRfids.contains(rfid)) {
+                        continue;
+                    }
+                    m.addRow(new Object[]{rfid,
+                            student.getOrDefault("firstname", ""),
+                            student.getOrDefault("lastname", ""),
+                            student.getOrDefault("section", ""),
+                            "", "", ""});
+                }
+            } 
+            
+            else if (!loggedRfids.contains(rfidFilter) && studentByRfid.containsKey(rfidFilter)) {
+                Map<String, String> student = studentByRfid.get(rfidFilter);
+                m.addRow(new Object[]{rfidFilter,
+                        student.getOrDefault("firstname", ""),
+                        student.getOrDefault("lastname", ""),
+                        student.getOrDefault("section", ""),
+                        "", "", ""});
+            }
+        } 
+        
+        catch (Exception e) {
+            logger.log(java.util.logging.Level.SEVERE, "Error loading attendance table", e);
+        }
+    }
+
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
+     */
+    @SuppressWarnings("unchecked")
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    private void initComponents() {
+
+        txtSearch = new javax.swing.JTextField();
+        btnIdentification = new javax.swing.JButton();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        tbIdentification = new javax.swing.JTable();
+        txtRFID = new javax.swing.JTextField();
+        txtfirstname = new javax.swing.JTextField();
+        txtlastname = new javax.swing.JTextField();
+        txtSection = new javax.swing.JTextField();
+        btnUpdate = new javax.swing.JButton();
+        btnDel = new javax.swing.JButton();
+        jLabel2 = new javax.swing.JLabel();
+
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        txtSearch.addActionListener(this::txtSearchActionPerformed);
+        getContentPane().add(txtSearch, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 90, 217, 40));
+
+        btnIdentification.setText("Search Identification");
+        btnIdentification.addActionListener(this::btnIdentificationActionPerformed);
+        getContentPane().add(btnIdentification, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 90, 187, 40));
+
+        tbIdentification.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+                {null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null},
+                {null, null, null, null, null, null, null}
+            },
+            new String [] {
+                "RFID_NUMBER", "First Name", "Last Name", "Section", "Time-In", "Time-Out", "Day"
+            }
+        ));
+        tbIdentification.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tbIdentificationMouseClicked(evt);
+            }
+        });
+        jScrollPane1.setViewportView(tbIdentification);
+
+        getContentPane().add(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 160, 550, -1));
+
+        txtRFID.addActionListener(this::txtRFIDActionPerformed);
+        getContentPane().add(txtRFID, new org.netbeans.lib.awtextra.AbsoluteConstraints(580, 182, 250, 40));
+        getContentPane().add(txtfirstname, new org.netbeans.lib.awtextra.AbsoluteConstraints(580, 230, 250, 40));
+
+        txtlastname.addActionListener(this::txtlastnameActionPerformed);
+        getContentPane().add(txtlastname, new org.netbeans.lib.awtextra.AbsoluteConstraints(580, 280, 250, 40));
+
+        txtSection.addActionListener(this::txtSectionActionPerformed);
+        getContentPane().add(txtSection, new org.netbeans.lib.awtextra.AbsoluteConstraints(580, 330, 250, 40));
+
+        btnUpdate.setText("UPDATE");
+        btnUpdate.addActionListener(this::btnUpdateActionPerformed);
+        getContentPane().add(btnUpdate, new org.netbeans.lib.awtextra.AbsoluteConstraints(580, 460, 251, 56));
+
+        btnDel.setText("DELETE");
+        btnDel.addActionListener(this::btnDelActionPerformed);
+        getContentPane().add(btnDel, new org.netbeans.lib.awtextra.AbsoluteConstraints(580, 520, 251, 56));
+
+        jLabel2.setIcon(new javax.swing.ImageIcon("C:\\Users\\pc\\Documents\\Group 4 Figma\\TableIdentification background.png")); // NOI18N
+        jLabel2.setText("jLabel2");
+        getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 870, 600));
+
+        pack();
+    }// </editor-fold>//GEN-END:initComponents
+
+    private void btnIdentificationActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnIdentificationActionPerformed
+        try {
+            String search = txtSearch.getText().trim();
+            loadAttendanceTable(search);
+        } catch (Exception e) {
+            logger.log(java.util.logging.Level.SEVERE, "Error loading identification results", e);
+            javax.swing.JOptionPane.showMessageDialog(this, "Unable to load attendance data: " + e.getMessage(), "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_btnIdentificationActionPerformed
+
+    private void txtSearchActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtSearchActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtSearchActionPerformed
+
+    private void tbIdentificationMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tbIdentificationMouseClicked
+        int row = tbIdentification.getSelectedRow();
+        if (row < 0) {
+            return;
+        }
+
+        txtRFID.setText(tbIdentification.getValueAt(row, 0).toString());
+        txtfirstname.setText(tbIdentification.getValueAt(row, 1).toString());
+        txtlastname.setText(tbIdentification.getValueAt(row, 2).toString());
+        txtSection.setText(tbIdentification.getValueAt(row, 3).toString());
+    }//GEN-LAST:event_tbIdentificationMouseClicked
+
+    private void btnUpdateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnUpdateActionPerformed
+     String RFID_Number = txtRFID.getText();
+     String Firstname = txtfirstname.getText();
+     String Lastname = txtlastname.getText();
+     String Section = txtSection.getText();
+     
+     
+     try{
+         ConnectXamppSQL.Update("students_information")
+             .set("firstname", Firstname)
+             .set("lastname", Lastname)
+             .set("section", Section)
+             .where("rfid_number", "=", RFID_Number)    
+             .execute();
+         
+                                 
+         
+          javax.swing.JOptionPane.showMessageDialog(null, "Information is been updated!");
+          new frmTimeOut().setVisible(true);
+          this.dispose();
+     }
+     
+     catch(Exception e){
+         
+     }
+   
+            
+    }//GEN-LAST:event_btnUpdateActionPerformed
+
+    private void txtlastnameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtlastnameActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtlastnameActionPerformed
+
+    private void txtSectionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtSectionActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txtSectionActionPerformed
+
+    private void btnDelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnDelActionPerformed
+         String RFID_Number = txtRFID.getText();
+         
+         try{
+             ConnectXamppSQL.Delete("students_information", "rfid_number", "=", RFID_Number);
+             javax.swing.JOptionPane.showMessageDialog(null, "Information is been deleted!");
+         }
+         
+         catch(Exception e){
+             
+         }
+    }//GEN-LAST:event_btnDelActionPerformed
+
+    private void txtRFIDActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtRFIDActionPerformed
+   
+    }//GEN-LAST:event_txtRFIDActionPerformed
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         */
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
+            logger.log(java.util.logging.Level.SEVERE, null, ex);
+        }
+        //</editor-fold>
+
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(() -> new frmTableIdentification().setVisible(true));
+    }
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton btnDel;
+    private javax.swing.JButton btnIdentification;
+    private javax.swing.JButton btnUpdate;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JTable tbIdentification;
+    private javax.swing.JTextField txtRFID;
+    private javax.swing.JTextField txtSearch;
+    private javax.swing.JTextField txtSection;
+    private javax.swing.JTextField txtfirstname;
+    private javax.swing.JTextField txtlastname;
+    // End of variables declaration//GEN-END:variables
+}
