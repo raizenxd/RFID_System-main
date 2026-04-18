@@ -7,10 +7,6 @@ package com.mycompany.ict.d_4;
 import java.awt.event.KeyEvent;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.Timer;
 
 /**
  *
@@ -18,15 +14,23 @@ import javax.swing.Timer;
  */
 public class frmTimeIn extends javax.swing.JFrame {
     
+    // Logger: used to record serious errors to the console with proper severity levels.
+    // Better than System.out.println because you can filter by INFO / WARNING / SEVERE.
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(frmTimeIn.class.getName());
 
     // TODO: Replace these with external config or secure storage before production
-    private static final String EMAIL_FROM = "devtrish129@gmail.com";
+    // These credentials are used by AttendanceService to send email notifications.
+    // They are declared here as constants but the actual sending happens in AttendanceService.
+    private static final String EMAIL_FROM     = "devtrish129@gmail.com";
     private static final String EMAIL_PASSWORD = "opna mwyy novk xaan"; // App password required if 2FA enabled
-    private static final String SCHOOL_NAME = "Your School Name";
-    private static final String SCHOOL_PHONE = "+63-912-345-6789";
+    private static final String SCHOOL_NAME    = "Your School Name";
+    private static final String SCHOOL_PHONE   = "+63-912-345-6789";
 
+    // DATE/TIME FORMATTERS ───────────────────────────────────────────────────
+    // These formatters define how the current time is displayed in the txtAM field.
+    // TIME_FORMAT → 12-hour clock with AM/PM, e.g., "08:30 AM"
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("hh:mm a");
+    // DATE_FORMAT → ISO date string, e.g., "2026-04-18"
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     /**
@@ -88,18 +92,33 @@ public class frmTimeIn extends javax.swing.JFrame {
     }//GEN-LAST:event_txtRFIDActionPerformed
 
     private void txtRFIDKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtRFIDKeyPressed
-       DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("hh:mm a"); 
+        // Create a formatter for displaying the time in the txtAM field.
+        // This is a local copy — the class-level TIME_FORMAT constant could also be used.
+        DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("hh:mm a"); 
         
+        // Capture the current date and time at the moment the key was pressed.
         LocalDateTime now = LocalDateTime.now();
-            String time = now.format(TIME_FORMAT);
+        // Format just the time portion: e.g., "08:30 AM"
+        String time = now.format(TIME_FORMAT);
+
+        // Only process the RFID when the ENTER key is pressed.
+        // The RFID scanner simulates keyboard input and ends with an ENTER key press.
+        // VK_ENTER is the virtual key code constant for the Enter key.
         if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            // Read whatever text is currently in the RFID input field.
+            // .trim() removes any accidental leading/trailing spaces from the scanner.
             String capturedValue = txtRFID.getText().trim();
-            if (!capturedValue.isEmpty()) {                
+
+            // Only process if the field is not empty (a valid RFID was scanned).
+            if (!capturedValue.isEmpty()) {
+                // Delegate to AttendanceService to handle the full attendance workflow:
+                // database insert + duplicate check + email notification + success popup.
+                // "IN" tells the service that this is a Time-In scan.
                 AttendanceService.processAttendance(capturedValue, "IN", this);
-                    
             }
-            txtRFID.setText(""); // Clear the input field after processing
-             txtAM.setText(time);
+
+            txtRFID.setText(""); // Clear the RFID input field so it's ready for the next scan
+            txtAM.setText(time); // Display the formatted time in the Time-In display field
         }
         
     }//GEN-LAST:event_txtRFIDKeyPressed

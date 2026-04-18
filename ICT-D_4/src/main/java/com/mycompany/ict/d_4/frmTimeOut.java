@@ -7,10 +7,6 @@ package com.mycompany.ict.d_4;
 import java.awt.event.KeyEvent;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import javax.swing.JDialog;
-import javax.swing.JFrame;
-import javax.swing.JOptionPane;
-import javax.swing.Timer;
 
 /**
  *
@@ -18,6 +14,8 @@ import javax.swing.Timer;
  */
 public class frmTimeOut extends javax.swing.JFrame {
     
+    // Logger: records errors to the console with structured severity levels (INFO, WARNING, SEVERE).
+    // Using a Logger is safer and more professional than System.out.println for error handling.
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(frmTimeOut.class.getName());
 
     /**
@@ -71,18 +69,34 @@ public class frmTimeOut extends javax.swing.JFrame {
     }//GEN-LAST:event_txtRFID_AActionPerformed
 
     private void txtRFID_AKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtRFID_AKeyPressed
+        // Create a formatter for displaying the time in the txtPM field.
         DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("hh:mm a"); 
         
+        // Capture the current date and time at the moment the key was pressed.
         LocalDateTime now = LocalDateTime.now();
-            String time = now.format(TIME_FORMAT);
+        // Format just the time portion: e.g., "06:00 PM"
+        String time = now.format(TIME_FORMAT);
+
+        // Only process when the ENTER key is pressed.
+        // The RFID scanner sends all characters of the card number and finishes with Enter.
+        // VK_ENTER is the virtual key code constant representing the Enter key.
         if (evt.getKeyCode() == KeyEvent.VK_ENTER) {
+            // Read the scanned card number from the input field and strip extra whitespace.
             String capturedValue = txtRFID_A.getText().trim();
-            if (!capturedValue.isEmpty()) {                
+
+            // Only proceed if the field actually contains something (not blank).
+            if (!capturedValue.isEmpty()) {
+                // Hand off to AttendanceService which handles:
+                //   1. Checking if the student exists
+                //   2. Duplicate-scan guard (same OUT type already logged today = warning)
+                //   3. Inserting the log into the database
+                //   4. Sending an email notification to the parent
+                // "OUT" tells the service that this is a Time-Out scan.
                 AttendanceService.processAttendance(capturedValue, "OUT", this);
-                    
             }
-            txtRFID_A.setText(""); // Clear the input field after processing
-             txtPM.setText(time);
+
+            txtRFID_A.setText(""); // Clear the RFID field so it is ready for the next student's scan
+            txtPM.setText(time);   // Display the formatted time in the Time-Out display field
         }
         
     }//GEN-LAST:event_txtRFID_AKeyPressed

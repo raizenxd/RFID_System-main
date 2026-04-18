@@ -5,6 +5,7 @@ package com.mycompany.ict.d_4;
 // Think of it as giving Java the ability to act like an email client (like Gmail).
 import java.time.LocalDateTime;           // Handles login — provides username + password to the mail server
 import java.time.format.DateTimeFormatter;                 // Represents one email message (like writing a letter)
+import java.util.List;     // An ordered collection — used here to hold the list of existing log rows
 import java.util.Map;      // The error/exception type thrown if email sending fails
 import java.util.Properties;  // Packages the email address + password for the Authenticator
 
@@ -74,6 +75,7 @@ public class AttendanceService {
     //   Step 3 → If no student found, show the Unauthorized Student screen
     //   Step 4 → Extract the student's name and parent email from the result
     //   Step 5 → Get the current date/time and format it for database storage
+    //   Step 5.5 → Duplicate check: if the same log type was already recorded today, warn and stop
     //   Step 6 → Insert a new attendance log record into the database
     //   Step 7 → Build the email subject and body text
     //   Step 8 → Send the email notification to the parent
@@ -115,6 +117,56 @@ public class AttendanceService {
             LocalDateTime now = LocalDateTime.now();
             // Format it as a full timestamp string suitable for saving into MySQL
             String timestamp = now.format(TIMESTAMP_FORMAT); // e.g., "2026-04-18 08:30:00"
+
+            // STEP 5.5: DUPLICATE SCAN CHECK ────────────────────────────────────────────────
+            // PURPOSE: Prevent the same student from being logged as IN (or OUT) more than
+            // once on the same calendar day. This stops accidental double-scans like:
+            //   Brew – TIME IN 6:00:01 PM
+            //   Brew – TIME IN 6:00:02 PM  ← this should be blocked!
+            //
+            // HOW IT WORKS:
+            //   1. Query the database for all logs matching this student + this log type.
+            //   2. Check in Java if any of those logs happened on today's date.
+            //   3. If a match is found, show a WARNING dialog and return early (skip insert).
+            //
+            // WHY CHECK IN JAVA AND NOT ONLY IN SQL?
+            //   The ConnectXamppSQL helper compares whole column values. Since the timestamp
+            //   column stores the full date+time ("2026-04-18 08:30:00"), we can't use a
+            //   simple "=" to match just the date part. Instead, we fetch the relevant rows
+            //   and check whether their timestamp STARTS WITH today's date string in Java.
+
+            // todayDate = just the date portion, e.g., "2026-04-18"
+            // The timestamp format begins with "yyyy-MM-dd", so .startsWith(todayDate) is safe.
+            String todayDate = now.format(DATE_FORMAT);
+
+            // Fetch all attendance logs for this student AND this log type (IN or OUT).
+            // This returns a list of Map rows — each map is one log entry from the database.
+            List<Map<String, String>> existingLogs = ConnectXamppSQL.Read("attendance_logs")
+                    .where("rfid_number", "=", rfid)     // Only this student's logs
+                    .where("log_type",    "=", logType)  // Only logs matching IN or OUT (not both)
+                    .get();
+
+            // Check whether ANY of the fetched logs was recorded on today's date.
+            // .stream() converts the list into a stream for functional-style processing.
+            // .anyMatch() returns true if at least one element satisfies the condition.
+            // The condition: the timestamp string starts with today's date (first 10 characters).
+            boolean alreadyLoggedToday = existingLogs.stream()
+                    .anyMatch(log -> log.getOrDefault("timestamp", "").startsWith(todayDate));
+
+            // If the student already has a log of the same type today, block the scan.
+            if (alreadyLoggedToday) {
+                // Show a non-blocking warning dialog that auto-closes after 3 seconds.
+                // logType.toLowerCase() → "in" or "out" for a friendlier message.
+                // Example message: "Brew has already timed in today!"
+                showTimedMessageDialog(
+                    owner,
+                    studentName + " has already timed " + logType.toLowerCase() + " today!",
+                    "Duplicate Scan Warning",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                return; // ← Stop here. Do NOT insert a record or send an email.
+            }
+            // ────────────────────────────────────────────────────────────────────────────────
 
             // STEP 6: Insert a new row into the attendance_logs table in the database.
             // This permanently records WHO scanned (rfid), WHAT happened (logType),
